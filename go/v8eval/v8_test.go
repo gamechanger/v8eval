@@ -2,6 +2,7 @@ package v8eval
 
 import (
 	"runtime"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,6 +24,10 @@ func TestEval(t *testing.T) {
 	assert.Equal(t, nil, v8.Eval("1 + 2", &i))
 	assert.Equal(t, 3, i)
 
+	var s string
+	assert.Equal(t, nil, v8.Eval("'\\ud867\\ude3d'", &s))
+	assert.Equal(t, "𩸽", s)
+
 	var p pair
 	assert.Equal(t, nil, v8.Eval("var p = { x: 1.1, y: 2.2 }; p", &p))
 	assert.Equal(t, pair{X: 1.1, Y: 2.2}, p)
@@ -32,9 +37,8 @@ func TestEval(t *testing.T) {
 
 	err := v8.Eval("foo", nil)
 	assert.NotNil(t, err)
-	assert.Equal(t, "ReferenceError: foo is not defined", err.Error())
+	assert.Equal(t, "ReferenceError: foo is not defined\n    at v8eval:1:1", err.Error())
 
-	var s string
 	err = v8.Eval("1", &s)
 	assert.NotNil(t, err)
 	assert.Equal(t, "json: cannot unmarshal number into Go value of type string", err.Error())
@@ -103,4 +107,30 @@ func TestInParallel(t *testing.T) {
 		x := <-ch
 		assert.Equal(t, numRepeat, x)
 	}
+}
+
+func TestHeap(t *testing.T) {
+	v8 := NewV8()
+
+	var heap map[string]int
+	assert.Equal(t, nil, v8.Eval("heap()", &heap))
+
+	ks := []string{}
+	for k := range heap {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+
+	expected := []string{
+		"doesZapGarbage",
+		"heapSizeLimit",
+		"mallocedMemory",
+		"peakMallocedMemory",
+		"totalAvailableSize",
+		"totalHeapSize",
+		"totalHeapSizeExecutable",
+		"totalPhysicalSize",
+		"usedHeapSize",
+	}
+	assert.Equal(t, expected, ks)
 }

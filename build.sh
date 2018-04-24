@@ -59,11 +59,12 @@ install_v8() {
   cd $V8EVAL_ROOT
   fetch v8
   cd v8
-  git checkout 5.2.163
+  git checkout 6.3.288
+  gclient sync
   if [ $PY_VER = 3 ]; then
     sed -i -e 's/python -c/python2 -c/' Makefile
   fi
-  CFLAGS="-fPIC -Wno-unknown-warning-option" CXXFLAGS="-fPIC -Wno-unknown-warning-option" make x64.release -j$NUM_CPU_CORES V=1
+  CFLAGS="-fPIC -Wno-unknown-warning-option" CXXFLAGS="-fPIC -Wno-unknown-warning-option" make x64.release -j$NUM_CPU_CORES i18nsupport=off V=1
 
   if [ $PY_VER = 3 ]; then
     export PATH=$OLD_PATH
@@ -94,6 +95,9 @@ build() {
   cd build
   cmake -DCMAKE_BUILD_TYPE=Release -DV8EVAL_TEST=OFF ..
   make VERBOSE=1
+
+  cd $V8EVAL_ROOT
+  rm -rf old_v8_tools_luci-go.git
 }
 
 docs() {

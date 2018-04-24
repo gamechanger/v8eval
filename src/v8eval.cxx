@@ -22,10 +22,6 @@ bool initialize() {
     return false;
   }
 
-  if (!v8::V8::InitializeICU()) {
-    return false;
-  }
-
   platform = v8::platform::CreateDefaultPlatform();
   v8::V8::InitializePlatform(platform);
 
@@ -272,7 +268,7 @@ bool _V8::debugger_init(debugger_cb cb, void *cbopq) {
   v8::Locker locker(isolate_);
   v8::Isolate::Scope isolate_scope(isolate_);
   v8::HandleScope handle_scope(isolate_);
-  v8::Debug::SetMessageHandler(debugger_message_handler);
+  v8::Debug::SetMessageHandler(isolate_, debugger_message_handler);
 
   return true;
 }
@@ -283,7 +279,7 @@ void _V8::debugger_process() {
   v8::Isolate::Scope isolate_scope(isolate_);
   v8::HandleScope handle_scope(isolate_);
 
-  v8::Debug::ProcessDebugMessages();
+  v8::Debug::ProcessDebugMessages(isolate_);
 }
 
 bool _V8::debugger_send(const std::string& cmd) {
@@ -305,12 +301,44 @@ void _V8::debugger_stop() {
   v8::Locker locker(isolate_);
   v8::Isolate::Scope isolate_scope(isolate_);
   v8::HandleScope handle_scope(isolate_);
-  v8::Debug::SetMessageHandler(nullptr);
+  v8::Debug::SetMessageHandler(isolate_, nullptr);
 
   callback_ = nullptr;
   callback_opq_ = nullptr;
   dbg_isolate_->Dispose();
   dbg_isolate_ = nullptr;
+}
+
+void Heap(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate* isolate = args.GetIsolate();
+
+  v8::HeapStatistics s;
+  isolate->GetHeapStatistics(&s);
+
+  v8::Local<v8::Object> obj = v8::Object::New(isolate);
+  obj->Set(v8::String::NewFromUtf8(isolate, "totalHeapSize"), v8::Number::New(isolate, s.total_heap_size()));
+  obj->Set(v8::String::NewFromUtf8(isolate, "totalHeapSizeExecutable"), v8::Number::New(isolate, s.total_heap_size_executable()));
+  obj->Set(v8::String::NewFromUtf8(isolate, "totalPhysicalSize"), v8::Number::New(isolate, s.total_physical_size()));
+  obj->Set(v8::String::NewFromUtf8(isolate, "totalAvailableSize"), v8::Number::New(isolate, s.total_available_size()));
+  obj->Set(v8::String::NewFromUtf8(isolate, "usedHeapSize"), v8::Number::New(isolate, s.used_heap_size()));
+  obj->Set(v8::String::NewFromUtf8(isolate, "heapSizeLimit"), v8::Number::New(isolate, s.heap_size_limit()));
+  obj->Set(v8::String::NewFromUtf8(isolate, "mallocedMemory"), v8::Number::New(isolate, s.malloced_memory()));
+  obj->Set(v8::String::NewFromUtf8(isolate, "peakMallocedMemory"), v8::Number::New(isolate, s.peak_malloced_memory()));
+  obj->Set(v8::String::NewFromUtf8(isolate, "doesZapGarbage"), v8::Number::New(isolate, s.does_zap_garbage()));
+
+  args.GetReturnValue().Set(obj);
+}
+
+void _V8::enable_heap_report() {
+  v8::Locker locker(isolate_);
+
+  v8::Isolate::Scope isolate_scope(isolate_);
+  v8::HandleScope handle_scope(isolate_);
+
+  v8::Local<v8::Context> context = this->context();
+  v8::Context::Scope context_scope(context);
+
+  context->Global()->Set(new_string("heap"), v8::FunctionTemplate::New(isolate_, Heap)->GetFunction());
 }
 
 }  // namespace v8eval
