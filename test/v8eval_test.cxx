@@ -26,11 +26,12 @@ void test_eval() {
 
   ASSERT_STREQ("undefined", v8.eval("").c_str());
   ASSERT_STREQ("3", v8.eval("1 + 2").c_str());
+  ASSERT_STREQ("\"𩸽\"", v8.eval("'\\ud867\\ude3d'").c_str());
   ASSERT_STREQ("undefined", v8.eval("function inc(x) { return x + 1; }").c_str());
   ASSERT_STREQ("8", v8.eval("inc(7)").c_str());
   ASSERT_STREQ("{\"a\":1,\"b\":2}", v8.eval("var x = { a: 1 }; x['b'] = 2; x").c_str());
 
-  ASSERT_STREQ("ReferenceError: foo is not defined", v8.eval("foo").c_str());
+  ASSERT_STREQ("ReferenceError: foo is not defined\n    at v8eval:1:1", v8.eval("foo").c_str());
   ASSERT_STREQ("SyntaxError: Invalid or unexpected token", v8.eval("@").c_str());
 }
 

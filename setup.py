@@ -24,6 +24,8 @@ system("cp " + v8eval_root + "/src/v8eval_python.h " + py_v8eval_dir)
 system("swig -c++ -python -outdir " + py_v8eval_dir + " -o "  + py_v8eval_dir + "/v8eval_wrap.cxx " + py_v8eval_dir + "/v8eval.i")
 system("cat " + py_dir + "/_v8eval.py >> " + py_v8eval_dir + "/v8eval.py")
 
+# workaround
+system("mkdir " + v8_dir + "/buildtools/third_party/libc++/trunk/test/std/experimental/filesystem/Inputs/static_test_env/dne")
 
 # build _v8eval.so
 include_dirs = [v8_dir, v8_dir + '/include', uv_dir + '/include']
@@ -33,10 +35,10 @@ libraries=['v8eval',
            'v8_libplatform',
            'v8_base',
            'v8_libbase',
+           'v8_libsampler',
+           'v8_init',
+           'v8_initializers',
            'v8_nosnapshot',
-           'icui18n',
-           'icuuc',
-           'icudata',
            'uv']
 
 if platform == "linux" or platform == "linux2":
@@ -45,8 +47,7 @@ if platform == "linux" or platform == "linux2":
 
     libraries += ['rt']
 
-    library_dirs += [v8_dir + '/out/x64.release/obj.target/src',
-                     v8_dir + '/out/x64.release/obj.target/third_party/icu']
+    library_dirs += [v8_dir + '/out/x64.release/obj.target/src']
 elif platform == "darwin":
     library_dirs += [v8_dir + '/out/x64.release']
 
@@ -71,7 +72,7 @@ except ImportError:
 
 # setup v8eval package
 setup(name='v8eval',
-      version='0.2.5',
+      version='0.2.11',
       author='Yoshiyuki Mineo',
       author_email='Yoshiyuki.Mineo@jp.sony.com',
       license='MIT',
